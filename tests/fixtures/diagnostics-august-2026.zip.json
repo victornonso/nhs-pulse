@@ -1,0 +1,9 @@
+{
+  "id": "f0f5c040-f800-4069-a1f8-8be0f042b515",
+  "source_id": "diagnostics",
+  "official_url": "https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2026/10/DM01-AUGUST-2026-full-extract_FT0CD.zip",
+  "content_sha256": "5629e058b458ebefd46654f91dcdff74943fcf17638a3734106b1b993ebcef6c",
+  "storage_uri": "56\\5629e058b458ebefd46654f91dcdff74943fcf17638a3734106b1b993ebcef6c",
+  "acquired_utc": "2026-10-17 11:52:16.590803+01:00",
+  "file_format": "zip"
+}

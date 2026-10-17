@@ -1,0 +1,9 @@
+{
+  "id": "eb239c0d-5230-44e8-a3cb-88b9d9479702",
+  "source_id": "beds_overnight",
+  "official_url": "https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2026/08/NHS-organisations-in-England-Quarter-1-2026-27-Overnight.xlsx",
+  "content_sha256": "aa467766825324802649b75c2ea4a842282281dcf28951e95556a2dcaf7f0a2f",
+  "storage_uri": "aa\\aa467766825324802649b75c2ea4a842282281dcf28951e95556a2dcaf7f0a2f",
+  "acquired_utc": "2026-10-17 11:52:07.818377+01:00",
+  "file_format": "xlsx"
+}

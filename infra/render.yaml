@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: nhs-pulse-api
+    runtime: python
+    plan: free
+    buildCommand: pip install uv && uv sync --frozen --no-dev
+    startCommand: uv run --no-sync uvicorn apps.api.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health/ready
+    envVars:
+      - {key: DATABASE_URL,sync: false}
+      - {key: WORKER_DATABASE_URL,sync: false}
+      - {key: MIGRATION_DATABASE_URL,sync: false}
+      - {key: APP_ORIGIN,sync: false}
+      - {key: SESSION_SECRET,generateValue: true}
+      - {key: ADMIN_KEY,generateValue: true}
+      - {key: LLM_API_KEY,sync: false}

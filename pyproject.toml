@@ -1,0 +1,10 @@
+[project]
+name="nhs-pulse"
+version="1.0.0"
+requires-python=">=3.12"
+dependencies=["fastapi","uvicorn[standard]","httpx","pydantic-settings","sqlalchemy[asyncio]","psycopg[binary,pool]","asyncpg","alembic","pandas","openpyxl","xlrd","beautifulsoup4","apscheduler<4","scikit-learn","statsmodels","python-dateutil","pyjwt","shapely","pypdf","dbt-postgres"]
+[dependency-groups]
+dev=["pytest","pytest-asyncio","ruff"]
+[tool.pytest.ini_options]
+pythonpath=["."]
+testpaths=["tests"]

@@ -1,0 +1,9 @@
+name: nhs_pulse
+version: "1.0"
+config-version: 2
+profile: nhs_pulse
+model-paths: [models]
+test-paths: [tests]
+models:
+  nhs_pulse:
+    +materialized: view

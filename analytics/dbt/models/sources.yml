@@ -1,0 +1,17 @@
+sources:
+- name: published
+  schema: mart
+  tables:
+  - name: ae
+  - name: beds
+  - name: diagnostics
+  - name: national_overview
+  - name: trust_profile
+  - name: geography_comparison
+  - name: trend_seasonality
+  - name: collection_status
+- name: reference
+  schema: ref
+  tables:
+  - name: organisation
+version: 2

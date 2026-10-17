@@ -1,0 +1,198 @@
+{
+  "source": "https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2026/04/Proposed-12-month-plan-for-2026-27-for-publication-3.pdf",
+  "retrieved_at": "2026-10-17T10:51:17.996086+00:00",
+  "entries": [
+    {
+      "source": "ae",
+      "period": "2026-03-01",
+      "at": "2026-04-16 09:30:00+01:00",
+      "title": "A&E attendances and emergency admissions for March 2026 and Accredited Quarterly report (Q4) Official"
+    },
+    {
+      "source": "diagnostics",
+      "period": "2026-02-01",
+      "at": "2026-04-16 09:30:00+01:00",
+      "title": "Diagnostic waiting times and activity for February 2026 Accredited Official"
+    },
+    {
+      "source": "ae",
+      "period": "2026-04-01",
+      "at": "2026-05-14 09:30:00+01:00",
+      "title": "A&E attendances and emergency admissions for April 2026 Accredited Official"
+    },
+    {
+      "source": "diagnostics",
+      "period": "2026-03-01",
+      "at": "2026-05-14 09:30:00+01:00",
+      "title": "Diagnostic waiting times and activity for March 2026 Accredited Official"
+    },
+    {
+      "source": "beds_overnight",
+      "period": null,
+      "at": "2026-05-22 09:30:00+01:00",
+      "title": "Bed availability and occupancy data for Q4 2026/26 Official June"
+    },
+    {
+      "source": "beds_day",
+      "period": null,
+      "at": "2026-05-22 09:30:00+01:00",
+      "title": "Bed availability and occupancy data for Q4 2026/26 Official June"
+    },
+    {
+      "source": "ae",
+      "period": "2026-05-01",
+      "at": "2026-06-11 09:30:00+01:00",
+      "title": "A&E attendances and emergency admissions for May 2026 Accredited Official"
+    },
+    {
+      "source": "diagnostics",
+      "period": "2026-04-01",
+      "at": "2026-06-11 09:30:00+01:00",
+      "title": "Diagnostic waiting times and activity for April 2026 Accredited Official"
+    },
+    {
+      "source": "ae",
+      "period": "2026-06-01",
+      "at": "2026-07-09 09:30:00+01:00",
+      "title": "A&E attendances and emergency admissions for June 2026 and Accredited Quarterly report (Q1) Official"
+    },
+    {
+      "source": "diagnostics",
+      "period": "2026-05-01",
+      "at": "2026-07-09 09:30:00+01:00",
+      "title": "Diagnostic waiting times and activity for May 2026 Accredited Official"
+    },
+    {
+      "source": "ae",
+      "period": "2026-07-01",
+      "at": "2026-08-13 09:30:00+01:00",
+      "title": "A&E attendances and emergency admissions for July 2026 Accredited Official"
+    },
+    {
+      "source": "diagnostics",
+      "period": "2026-06-01",
+      "at": "2026-08-13 09:30:00+01:00",
+      "title": "Diagnostic waiting times and activity for June 2026 Accredited Official"
+    },
+    {
+      "source": "beds_overnight",
+      "period": null,
+      "at": "2026-08-20 09:30:00+01:00",
+      "title": "Bed availability and occupancy data for Q1 2026/27 Official"
+    },
+    {
+      "source": "beds_day",
+      "period": null,
+      "at": "2026-08-20 09:30:00+01:00",
+      "title": "Bed availability and occupancy data for Q1 2026/27 Official"
+    },
+    {
+      "source": "ae",
+      "period": "2026-08-01",
+      "at": "2026-09-10 09:30:00+01:00",
+      "title": "A&E attendances and emergency admissions for August 2026 Accredited Official"
+    },
+    {
+      "source": "diagnostics",
+      "period": "2026-07-01",
+      "at": "2026-09-10 09:30:00+01:00",
+      "title": "Diagnostic waiting times and activity for July 2026 Accredited Official"
+    },
+    {
+      "source": "ae",
+      "period": "2026-09-01",
+      "at": "2026-10-08 09:30:00+01:00",
+      "title": "A&E attendances and emergency admissions for September 2026 Accredited and Quarterly report (Q2) Official"
+    },
+    {
+      "source": "diagnostics",
+      "period": "2026-08-01",
+      "at": "2026-10-08 09:30:00+01:00",
+      "title": "Diagnostic waiting times and activity for August 2026 Accredited Official"
+    },
+    {
+      "source": "ae",
+      "period": "2026-10-01",
+      "at": "2026-11-12 09:30:00+00:00",
+      "title": "A&E attendances and emergency admissions for October 2026 Accredited Official"
+    },
+    {
+      "source": "diagnostics",
+      "period": "2026-09-01",
+      "at": "2026-11-12 09:30:00+00:00",
+      "title": "Diagnostic waiting times and activity for September 2026 Accredited Official"
+    },
+    {
+      "source": "beds_overnight",
+      "period": null,
+      "at": "2026-11-19 09:30:00+00:00",
+      "title": "Bed availability and occupancy data for Q2 2026/27 Official"
+    },
+    {
+      "source": "beds_day",
+      "period": null,
+      "at": "2026-11-19 09:30:00+00:00",
+      "title": "Bed availability and occupancy data for Q2 2026/27 Official"
+    },
+    {
+      "source": "ae",
+      "period": "2026-11-01",
+      "at": "2026-12-10 09:30:00+00:00",
+      "title": "A&E attendances and emergency admissions for November 2026 Accredited Official"
+    },
+    {
+      "source": "diagnostics",
+      "period": "2026-10-01",
+      "at": "2026-12-10 09:30:00+00:00",
+      "title": "Diagnostic waiting times and activity for October 2026 Accredited Official"
+    },
+    {
+      "source": "ae",
+      "period": "2026-12-01",
+      "at": "2027-01-14 09:30:00+00:00",
+      "title": "A&E attendances and emergency admissions for December 2026 Accredited and Quarterly report (Q3) Official"
+    },
+    {
+      "source": "diagnostics",
+      "period": "2026-11-01",
+      "at": "2027-01-14 09:30:00+00:00",
+      "title": "Diagnostic waiting times and activity for November 2026 Accredited Official"
+    },
+    {
+      "source": "ae",
+      "period": "2026-01-01",
+      "at": "2027-02-11 09:30:00+00:00",
+      "title": "A&E attendances and emergency admissions for January 2026 Accredited Official"
+    },
+    {
+      "source": "diagnostics",
+      "period": "2026-12-01",
+      "at": "2027-02-11 09:30:00+00:00",
+      "title": "Diagnostic waiting times and activity for December 2026 Accredited Official"
+    },
+    {
+      "source": "beds_overnight",
+      "period": null,
+      "at": "2027-02-18 09:30:00+00:00",
+      "title": "Bed availability and occupancy data for Q3 2026/27 Official"
+    },
+    {
+      "source": "beds_day",
+      "period": null,
+      "at": "2027-02-18 09:30:00+00:00",
+      "title": "Bed availability and occupancy data for Q3 2026/27 Official"
+    },
+    {
+      "source": "ae",
+      "period": "2026-02-01",
+      "at": "2027-03-11 09:30:00+00:00",
+      "title": "A&E attendances and emergency admissions for February 2026 Accredited Official"
+    },
+    {
+      "source": "diagnostics",
+      "period": "2027-01-01",
+      "at": "2027-03-11 09:30:00+00:00",
+      "title": "Diagnostic waiting times and activity for January 2027 Accredited Official"
+    }
+  ]
+}

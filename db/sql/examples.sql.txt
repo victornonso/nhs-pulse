@@ -1,0 +1,29 @@
+-- Monthly change: a gap must not masquerade as the immediately preceding month.
+WITH series AS (
+ SELECT period,attendances,
+ lag(period) OVER(ORDER BY period) AS prior_period,
+ lag(attendances) OVER(ORDER BY period) AS prior_value
+ FROM mart.ae WHERE grain='national' AND attendance_type='all'
+)
+SELECT *,CASE WHEN prior_period=period-interval '1 month'
+ THEN 100*(attendances-prior_value)/nullif(prior_value,0) END AS month_change_pct
+FROM series;
+
+-- Provider spread; never average provider percentages into a national KPI.
+SELECT period,percentile_cont(0.5) WITHIN GROUP(
+ ORDER BY 100*(attendances-over_four)/nullif(attendances,0)) AS provider_median,
+ count(*) FILTER(WHERE attendances IS NULL OR over_four IS NULL) AS missing_rows
+FROM mart.ae WHERE grain='provider' AND attendance_type='type1' GROUP BY period;
+
+-- Effective organisation assignments are constrained to each observation date.
+SELECT a.period,r.parent_code,sum(a.attendances) AS attendances
+FROM mart.ae a JOIN ref.organisation_relationship r ON r.provider_code=a.provider_code
+ AND r.relationship='ICB' AND r.valid_from<=a.period
+ AND (r.valid_to IS NULL OR r.valid_to>a.period)
+WHERE a.grain='provider' AND a.attendance_type='all'
+GROUP BY a.period,r.parent_code;
+
+-- Inspect a real query plan rather than promising index effectiveness.
+EXPLAIN(ANALYZE,BUFFERS)
+SELECT * FROM mart.ae WHERE provider_code='R0A' AND attendance_type='all'
+ORDER BY period;

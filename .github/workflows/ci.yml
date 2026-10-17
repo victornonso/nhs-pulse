@@ -1,0 +1,59 @@
+name: NHS Pulse verification
+on:
+  push: {branches: [main]}
+  pull_request:
+permissions: {contents: read}
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:18-3.6
+        env:
+          POSTGRES_USER: nhs_admin
+          POSTGRES_PASSWORD: ci-admin-only
+          POSTGRES_DB: nhs_pulse_db
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U nhs_admin -d nhs_pulse_db"
+          --health-interval 5s --health-retries 20
+    env:
+      MIGRATION_DATABASE_URL: postgresql+psycopg://nhs_admin:ci-admin-only@127.0.0.1:5432/nhs_pulse_db
+      DATABASE_URL: postgresql+psycopg://nhs_app:ci-app-only@127.0.0.1:5432/nhs_pulse_db
+      SESSION_SECRET: ci-session-only-not-a-production-secret
+      APP_ORIGIN: http://127.0.0.1:3020
+      RUN_DATABASE_TESTS: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-node@v4
+        with: {node-version: '24',cache: npm,cache-dependency-path: apps/web/package-lock.json}
+      - run: uv sync --frozen
+      - name: Create application role
+        env: {PGPASSWORD: ci-admin-only}
+        run: psql -h 127.0.0.1 -U nhs_admin -d nhs_pulse_db -v ON_ERROR_STOP=1 -c "CREATE ROLE nhs_app LOGIN PASSWORD 'ci-app-only' NOSUPERUSER NOCREATEDB NOCREATEROLE"
+      - run: uv run python -m tools.migrate
+      - run: uv run alembic upgrade head
+      - run: uv run ruff check apps/api services pipelines tools tests --select E4,E7,E9,F
+      - run: uv run pytest -q
+      - run: uv run python -m tools.seed_fixture_data
+      - run: npm ci
+        working-directory: apps/web
+      - run: npm run build
+        working-directory: apps/web
+      - run: npm run typecheck
+        working-directory: apps/web
+      - name: Verify API routes and privilege boundary
+        run: |
+          uv run uvicorn apps.api.main:app --host 127.0.0.1 --port 8020 > /tmp/nhs-api.log 2>&1 &
+          uv run python -m tools.smoke_api
+      - run: npx playwright install --with-deps chromium
+        working-directory: apps/web
+      - name: Verify all screens at desktop, tablet and mobile widths
+        working-directory: apps/web
+        run: |
+          npm run start > /tmp/nhs-web.log 2>&1 &
+          npx playwright test
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: responsive-browser-evidence,path: apps/web/test-results,retention-days: 7}
