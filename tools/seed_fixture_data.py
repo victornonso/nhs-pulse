@@ -1,6 +1,7 @@
 """Offline smoke dataset: captured, unmodified official releases with source lineage."""
 
 import json
+import os
 from pathlib import Path
 from sqlalchemy import text
 from apps.api.database import transaction
@@ -45,7 +46,7 @@ def main():
         ("beds_overnight", "beds-q1-2026.xlsx"),
         ("diagnostics", "diagnostics-august-2026.zip"),
     ]:
-        path = root / "tests/fixtures" / name
+        path = Path(os.environ.get("NHS_FIXTURE_DIR", root / "tests/fixtures")) / name
         meta = json.loads(
             path.with_suffix(path.suffix + ".json").read_text(encoding="utf-8")
         )

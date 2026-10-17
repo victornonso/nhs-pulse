@@ -72,8 +72,8 @@ jobs:
         run: docker compose up --build --wait --wait-timeout 600 postgres api web worker
       - name: Publish captured official data and verify container integration
         run: |
-          docker compose cp tests/fixtures api:/app/tests/fixtures
-          docker compose exec -T api uv run --no-sync python -m tools.seed_fixture_data
+          docker compose cp tests/fixtures api:/tmp/fixtures
+          docker compose exec -T -e NHS_FIXTURE_DIR=/tmp/fixtures api uv run --no-sync python -m tools.seed_fixture_data
           docker compose exec -T api uv run --no-sync python -m tools.smoke_api
           curl --fail http://127.0.0.1:3020/api/v1/workspace/overview > /tmp/nhs-overview.json
           python -c "import json; d=json.load(open('/tmp/nhs-overview.json')); assert d['metrics'][0]['value']==2444743"
