@@ -31,4 +31,4 @@ jobs:
         if: steps.configuration.outputs.ready == 'true'
       - name: Source-specific due checks and collection
         if: steps.configuration.outputs.ready == 'true'
-        run: uv run python -m pipelines.orchestration.collect --source all
+        run: uv run python -m tools.scheduled_collection

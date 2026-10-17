@@ -142,6 +142,23 @@ def collect(source, backfill=1, force=False, corrections=False):
         assets = sorted(unique.values(), key=key, reverse=True)[
             : 48 if corrections else backfill
         ]
+        if corrections:
+            with transaction() as conn:
+                known_periods = {
+                    r["reporting_period"]
+                    for r in records(
+                        conn,
+                        "SELECT reporting_period FROM ops.mart_publication WHERE source_id=:s",
+                        {"s": source},
+                    )
+                }
+            known_keys = {
+                ((p.year - (p.month < 4)) * 4 + ((p.month - 4) % 12) // 3 + 1)
+                if source.startswith("beds")
+                else p.toordinal()
+                for p in known_periods
+            }
+            assets = [a for a in assets if key(a) in known_keys]
         results = []
         for a in assets:
             with transaction() as conn:

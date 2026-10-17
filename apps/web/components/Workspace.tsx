@@ -650,6 +650,7 @@ function Product({ screen }: { screen: string }) {
                                 ),
                               )}
                             </dl>
+                            <Table rows={Object.entries(d.selected_model.metadata.candidates || {}).map(([candidate, scores]) => ({candidate,...(scores as Record<string, unknown>)}))} columns={['candidate','MAE','WAPE']} />
                             <p>
                               {String(
                                 d.selected_model.metadata.methodology ||
