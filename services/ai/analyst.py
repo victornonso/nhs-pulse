@@ -225,12 +225,33 @@ def releases(result):
 
 
 def numeric_support(answer, evidence):
-    """Reject invented numerical tokens. Rounded evidence variants are permitted."""
-    allowed = set(re.findall(r"\d+(?:\.\d+)?", json.dumps(jsonable_encoder(evidence))))
+    """Check signed quantities separately from dates, URLs and evidence IDs."""
+    from decimal import Decimal
+
+    uuid_pattern = re.compile(r"\b[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}\b", re.I)
+    url_pattern = re.compile(r"https?://[^\s<>\]\)]+")
+
+    def tokens(text):
+        text = url_pattern.sub("", text)
+        text = uuid_pattern.sub("", text)
+        text = text.replace("\u2212", "-")
+        text = re.sub(
+            r"\b\d{4}-\d{2}-\d{2}\b", lambda m: m.group().replace("-", " "), text
+        )
+        text = re.sub(r"(?<=\d),(?=\d)", "", text)
+        return re.findall(r"(?<![\w.])[-+]?\d+(?:\.\d+)?", text)
+
+    def canonical(n):
+        value = Decimal(n)
+        return "0" if value == 0 else str(value.normalize())
+
+    allowed = set()
 
     def visit(v):
         if isinstance(v, (int, float)):
             allowed.update([str(v), f"{v:.2f}", f"{v:.3f}", f"{v:.0f}"])
+        elif isinstance(v, str):
+            allowed.update(tokens(v))
         elif isinstance(v, dict):
             for x in v.values():
                 visit(x)
@@ -239,15 +260,13 @@ def numeric_support(answer, evidence):
                 visit(x)
 
     visit(jsonable_encoder(evidence))
-    from decimal import Decimal
-
-    def canonical(n):
-        return str(Decimal(n).normalize())
-
     allowed = {canonical(n) for n in allowed}
-    return all(
-        canonical(n) in allowed
-        for n in re.findall(r"\d+(?:\.\d+)?", re.sub(r"(?<=\d),(?=\d)", "", answer))
+    known_ids = {
+        v.lower() for v in uuid_pattern.findall(json.dumps(jsonable_encoder(evidence)))
+    }
+    cited_ids = {v.lower() for v in uuid_pattern.findall(url_pattern.sub("", answer))}
+    return cited_ids <= known_ids and all(
+        canonical(n) in allowed for n in tokens(answer)
     )
 
 
