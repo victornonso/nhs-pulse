@@ -45,7 +45,8 @@ jobs:
         working-directory: apps/web
       - name: Verify API routes and privilege boundary
         run: |
-          uv run uvicorn apps.api.main:app --host 127.0.0.1 --port 8020 > /tmp/nhs-api.log 2>&1 &
+          .venv/bin/python -m uvicorn apps.api.main:app --host 127.0.0.1 --port 8020 > /tmp/nhs-api.log 2>&1 &
+          echo $! > /tmp/nhs-api.pid
           uv run python -m tools.smoke_api
       - run: npx playwright install --with-deps chromium
         working-directory: apps/web
@@ -55,3 +56,30 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with: {name: responsive-browser-evidence,path: apps/web/test-results,retention-days: 7}
+      - name: Stop verification API
+        if: always()
+        run: if [ -f /tmp/nhs-api.pid ]; then kill "$(cat /tmp/nhs-api.pid)" || true; fi
+  compose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare isolated container configuration
+        run: |
+          cp .env.example .env
+          printf '\nPOSTGRES_PASSWORD=compose-admin-only\nAPP_DATABASE_PASSWORD=compose-app-only\n' >> .env
+      - name: Build and start the complete stack
+        run: docker compose up --build --wait --wait-timeout 600 postgres api web worker
+      - name: Publish captured official data and verify container integration
+        run: |
+          docker compose cp tests/fixtures api:/app/tests/fixtures
+          docker compose exec -T api uv run --no-sync python -m tools.seed_fixture_data
+          docker compose exec -T api uv run --no-sync python -m tools.smoke_api
+          curl --fail http://127.0.0.1:3020/api/v1/workspace/overview > /tmp/nhs-overview.json
+          python -c "import json; d=json.load(open('/tmp/nhs-overview.json')); assert d['metrics'][0]['value']==2444743"
+      - name: Container diagnostics
+        if: failure()
+        run: docker compose logs --tail 100
+      - name: Stop isolated verification stack
+        if: always()
+        run: docker compose down

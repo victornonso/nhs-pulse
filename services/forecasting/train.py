@@ -50,6 +50,27 @@ def evaluate(values, dates):
     return result
 
 
+def comparability_check(values):
+    """Flag abrupt recent seasonal level shifts; this is a screening rule, not proof."""
+    values = np.asarray(values, dtype=float)
+    seasonal = values[12:] / np.maximum(values[:-12], 1) - 1
+    baseline = seasonal[:-6]
+    centre = float(np.median(baseline))
+    mad = float(np.median(np.abs(baseline - centre)))
+    threshold = max(0.25, 6 * 1.4826 * mad)
+    flagged = [
+        int(i + len(values) - 6)
+        for i, v in enumerate(seasonal[-6:])
+        if abs(v - centre) > threshold
+    ]
+    return {
+        "flagged_indices": flagged,
+        "threshold": threshold,
+        "baseline_median": centre,
+        "method": "Recent year-on-year changes compared with the preceding seasonal-change median; threshold is the larger of 25 percentage points or six robust standard deviations. Flags require source-methodology review and do not establish a structural break.",
+    }
+
+
 def train():
     with transaction() as c:
         rows = records(
@@ -70,6 +91,13 @@ def train():
             "reason": "Missing reporting months or suppressed national values",
         }
     values = frame.attendances.astype(float).to_numpy()
+    comparability = comparability_check(values)
+    if comparability["flagged_indices"]:
+        return {
+            "status": "withheld",
+            "reason": "Recent seasonal level shifts require source comparability review",
+            "comparability_check": comparability,
+        }
     backtests = evaluate(values, dates)
     scores = {}
     for candidate in ["Seasonal naïve", "Damped seasonal ETS"]:
@@ -114,6 +142,7 @@ def train():
         "training_start": str(dates[0].date()),
         "observations": len(values),
         "scope": "England, all A&E types, booked-inclusive counts",
+        "comparability_check": comparability,
         "comparability": "Aggregate published series; organisational scope and reporting changes may influence results. No patient or bed-availability prediction.",
     }
     with transaction() as c:
