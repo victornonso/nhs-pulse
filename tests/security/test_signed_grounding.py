@@ -55,3 +55,23 @@ def test_iso_date_separators_are_not_negative_quantities():
 def test_availability_flags_are_not_measurements():
     assert numeric_support("The forecast is unavailable.", {"available": False})
     assert not numeric_support("There were 1 attendances.", {"available": True})
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [
+        "The rate fell by 0.68 percentage points.",
+        "The rate was down **0.68** percentage points.",
+        "A 0.68 percentage-point decrease.",
+        "The rate declined 0.68 points.",
+    ],
+)
+def test_negative_changes_can_be_expressed_in_words(answer):
+    assert numeric_support(answer, {"change": -0.6782})
+    assert not numeric_support(answer.replace("0.68", "0.99"), {"change": -0.6782})
+
+
+def test_grounding_diagnostics_identify_unsupported_values():
+    diagnostics = {}
+    assert not numeric_support("Change +0.68.", {"change": -0.6782}, diagnostics)
+    assert diagnostics["unsupported_numbers"] == ["+0.68"]

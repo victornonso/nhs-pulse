@@ -39,6 +39,65 @@ export default function Answer({ text }: { text: string }) {
   return (
     <div className="answer-text">
       {text.split(/\n\s*\n/).map((block, i) => {
+        const lines = block.trim().split("\n");
+        const cells = (line: string) =>
+          line
+            .trim()
+            .replace(/^\||\|$/g, "")
+            .split("|")
+            .map((cell) => cell.trim());
+        if (
+          lines.length >= 2 &&
+          lines[0].includes("|") &&
+          cells(lines[1]).every((cell) => /^:?-{3,}:?$/.test(cell))
+        ) {
+          const headers = cells(lines[0]);
+          const rows = lines.slice(2).map(cells);
+          if (rows.every((row) => row.length === headers.length))
+            return (
+              <div
+                className="table-scroll"
+                key={i}
+                tabIndex={0}
+                role="region"
+                aria-label="Investigation comparison table"
+              >
+                <table>
+                  <caption className="sr-only">
+                    Comparison from published evidence
+                  </caption>
+                  <thead>
+                    <tr>
+                      {headers.map((cell, n) => (
+                        <th scope="col" key={n}>
+                          {inline(cell)}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((row, n) => (
+                      <tr key={n}>
+                        {row.map((cell, col) =>
+                          col === 0 ? (
+                            <th scope="row" key={col}>
+                              {inline(cell)}
+                            </th>
+                          ) : (
+                            <td key={col}>{inline(cell)}</td>
+                          ),
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            );
+        }
+        if (/^#{1,4}\s+[^\n]+$/.test(block.trim()))
+          return (
+            <h4 key={i}>{inline(block.trim().replace(/^#{1,4}\s+/, ""))}</h4>
+          );
         if (/^\*\*[^*]+\*\*$/.test(block.trim()))
           return <h4 key={i}>{block.trim().slice(2, -2)}</h4>;
         if (block.split("\n").every((line) => /^\s*[-*] /.test(line)))

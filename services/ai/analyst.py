@@ -3,6 +3,7 @@
 import json
 import re
 from datetime import date
+from dateutil.relativedelta import relativedelta
 from typing import Literal
 from uuid import uuid4
 import httpx
@@ -28,6 +29,7 @@ METRICS = Literal[
 class Args(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     metric: METRICS = "attendances"
+    metrics: list[METRICS] = Field(default_factory=list, max_length=3)
     period: str | None = Field(None, pattern=r"^\d{4}-\d{2}$")
     previous: str | None = Field(None, pattern=r"^\d{4}-\d{2}$")
     provider: str | None = Field(None, pattern=r"^[A-Z0-9]{3,8}$")
@@ -40,7 +42,7 @@ TOOLS = {
     "list_metrics": "List the governed metric catalogue.",
     "metric_definition": "Retrieve one metric definition and denominator.",
     "query_aggregate": "Query one published aggregate metric and its release provenance.",
-    "compare_periods": "Compare one metric across two explicit reporting months.",
+    "compare_periods": "Compare up to three metrics in one call. Omit period and previous for latest published versus previous calendar period. For A&E outcomes use metrics=['attendances','four_hour_pct']. Returns backend-calculated changes and release evidence.",
     "compare_providers": "Compare one metric for up to three valid ODS provider codes.",
     "get_geographic_distribution": "Return region measures at one reporting month; weighted denominators.",
     "get_forecast": "Retrieve evaluated attendance forecasts, intervals and methodology.",
@@ -118,6 +120,47 @@ async def aggregate(c, a, period=None, provider=None):
     }
 
 
+async def compare_aggregate_periods(c, a):
+    comparisons = []
+    for metric in a.metrics or [a.metric]:
+        selected = a.model_copy(update={"metric": metric})
+        current = await aggregate(c, selected, a.period)
+        period = current["reporting_period"]
+        if period is None:
+            comparisons.append(
+                {
+                    "metric": metric,
+                    "available": False,
+                    "reason": "No published reporting period",
+                }
+            )
+            continue
+        previous_month = a.previous or (
+            period - relativedelta(months=3 if metric == "bed_occupancy" else 1)
+        ).strftime("%Y-%m")
+        previous = await aggregate(c, selected, previous_month)
+        change = (
+            current["value"] - previous["value"]
+            if current["value"] is not None and previous["value"] is not None
+            else None
+        )
+        comparisons.append(
+            {
+                "metric": metric,
+                "observations": [current, previous],
+                "absolute_change": change,
+                "change_unit": "percentage points"
+                if current["unit"] == "%"
+                else current["unit"],
+                "percentage_change": 100 * change / previous["value"]
+                if change is not None and previous["value"]
+                else None,
+                "comparison": "Current minus previous. Rate differences are percentage points; percentage_change is relative to the previous value. Retain the sign of every change.",
+            }
+        )
+    return {"comparisons": comparisons} if a.metrics else comparisons[0]
+
+
 async def tool(name, arguments):
     if name not in TOOLS:
         raise ValueError("Unknown analytical tool")
@@ -132,25 +175,7 @@ async def tool(name, arguments):
         if name == "query_aggregate":
             return await aggregate(c, a)
         if name == "compare_periods":
-            if not a.period or not a.previous:
-                raise ValueError("Two explicit reporting months are required")
-            current, previous = (
-                await aggregate(c, a, a.period),
-                await aggregate(c, a, a.previous),
-            )
-            change = (
-                current["value"] - previous["value"]
-                if current["value"] is not None and previous["value"] is not None
-                else None
-            )
-            return {
-                "observations": [current, previous],
-                "absolute_change": change,
-                "percentage_change": 100 * change / previous["value"]
-                if change is not None and previous["value"]
-                else None,
-                "comparison": "Current minus previous; percentage change uses the previous value as denominator.",
-            }
+            return await compare_aggregate_periods(c, a)
         if name == "compare_providers":
             if not 1 <= len(a.providers) <= 3 or any(
                 not re.fullmatch("[A-Z0-9]{3,8}", x) for x in a.providers
@@ -224,7 +249,7 @@ def releases(result):
     return list(found.values())
 
 
-def numeric_support(answer, evidence):
+def numeric_support(answer, evidence, diagnostics=None):
     """Check signed quantities separately from dates, URLs and evidence IDs."""
     from decimal import Decimal
 
@@ -235,11 +260,29 @@ def numeric_support(answer, evidence):
         text = url_pattern.sub("", text)
         text = uuid_pattern.sub("", text)
         text = text.replace("\u2212", "-")
+        text = text.replace("**", "")
         text = re.sub(
             r"\b\d{4}-\d{2}-\d{2}\b", lambda m: m.group().replace("-", " "), text
         )
         text = re.sub(r"(?<=\d),(?=\d)", "", text)
-        return re.findall(r"(?<![\w.])[-+]?\d+(?:\.\d+)?", text)
+        quantities = []
+        for match in re.finditer(r"(?<![\w.])[-+]?\d+(?:\.\d+)?", text):
+            number = match.group()
+            if not number.startswith(("+", "-")):
+                before = text[max(0, match.start() - 40) : match.start()]
+                after = text[match.end() : match.end() + 45]
+                if re.search(
+                    r"\b(?:decrease[ds]?|decline[ds]?|fell|fallen|drop(?:ped)?|down|reduced|reduction|lowered|lower)\s*(?:by|of)?\s*$",
+                    before,
+                    re.I,
+                ) or re.match(
+                    r"\s*(?:percentage[ -]points?|%|points?|pp)?\s*(?:decrease|decline|drop|reduction)\b",
+                    after,
+                    re.I,
+                ):
+                    number = "-" + number
+            quantities.append(number)
+        return quantities
 
     def canonical(n):
         value = Decimal(n)
@@ -267,9 +310,13 @@ def numeric_support(answer, evidence):
         v.lower() for v in uuid_pattern.findall(json.dumps(jsonable_encoder(evidence)))
     }
     cited_ids = {v.lower() for v in uuid_pattern.findall(url_pattern.sub("", answer))}
-    return cited_ids <= known_ids and all(
-        canonical(n) in allowed for n in tokens(answer)
-    )
+    unsupported = [n for n in tokens(answer) if canonical(n) not in allowed]
+    if diagnostics is not None:
+        diagnostics.update(
+            unsupported_numbers=unsupported,
+            unknown_evidence_ids=sorted(cited_ids - known_ids),
+        )
+    return cited_ids <= known_ids and not unsupported
 
 
 async def investigate(session, question):
@@ -330,9 +377,10 @@ async def investigate(session, question):
     evidence = []
     answer = ""
     calls = 0
+    tool_cache = {}
     try:
         async with httpx.AsyncClient(timeout=httpx.Timeout(90, connect=15)) as client:
-            for _ in range(5):
+            for round_index in range(6):
                 r = await client.post(
                     settings.llm_base_url.rstrip("/") + "/chat/completions",
                     headers={"Authorization": "Bearer " + settings.llm_api_key},
@@ -340,6 +388,9 @@ async def investigate(session, question):
                         "model": settings.llm_model,
                         "messages": messages,
                         "tools": definitions,
+                        "tool_choice": "none"
+                        if round_index == 5 or calls >= 8
+                        else "auto",
                         "max_tokens": 1200,
                         "temperature": 0.1,
                         "thinking": {"type": "disabled"},
@@ -352,11 +403,23 @@ async def investigate(session, question):
                     answer = message.get("content") or ""
                     break
                 for call in message["tool_calls"]:
+                    name = call["function"]["name"]
+                    arguments = Args.model_validate(
+                        json.loads(call["function"]["arguments"])
+                    ).model_dump()
+                    cache_key = json.dumps([name, arguments], sort_keys=True)
+                    if cache_key in tool_cache:
+                        messages.append(
+                            {
+                                "role": "tool",
+                                "tool_call_id": call["id"],
+                                "content": json.dumps(tool_cache[cache_key]),
+                            }
+                        )
+                        continue
                     calls += 1
                     if calls > 8:
                         raise ValueError("Investigation tool budget exceeded")
-                    name = call["function"]["name"]
-                    arguments = json.loads(call["function"]["arguments"])
                     result = jsonable_encoder(await tool(name, arguments))
                     identifier = str(uuid4())
                     refs = jsonable_encoder(releases(result))
@@ -367,6 +430,7 @@ async def investigate(session, question):
                         "releases": refs,
                     }
                     evidence.append(item)
+                    tool_cache[cache_key] = item
                     async with read_session() as c:
                         await c.execute(
                             text(
@@ -398,9 +462,26 @@ async def investigate(session, question):
                             "content": json.dumps(item),
                         }
                     )
-        if not answer or not evidence or not numeric_support(answer, evidence):
+        diagnostics = {}
+        if (
+            not answer
+            or not evidence
+            or not numeric_support(answer, evidence, diagnostics)
+        ):
+            async with read_session() as c:
+                await c.execute(
+                    text(
+                        "UPDATE ai.conversation SET metadata=metadata||cast(:m as jsonb) WHERE id=:id"
+                    ),
+                    {
+                        "id": conversation,
+                        "m": json.dumps(
+                            {"grounding": diagnostics, "tool_count": calls}
+                        ),
+                    },
+                )
             raise ValueError(
-                "The response did not meet evidence grounding checks. Please narrow the question."
+                "The analyst could not verify all figures in its response. No unverified answer was published."
             )
         async with read_session() as c:
             await c.execute(
