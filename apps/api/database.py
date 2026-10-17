@@ -1,6 +1,8 @@
 from contextlib import contextmanager, asynccontextmanager
 from sqlalchemy import create_engine, text
 from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.engine import make_url
+import ssl
 from .settings import settings
 
 writer = create_engine(
@@ -9,8 +11,12 @@ writer = create_engine(
     pool_size=3,
     max_overflow=2,
 )
+reader_url = make_url(settings.database_url).set(drivername="postgresql+asyncpg")
+secure = reader_url.query.get("sslmode") not in (None, "disable")
+reader_url = reader_url.difference_update_query(["sslmode", "channel_binding"])
 async_engine = create_async_engine(
-    settings.database_url.replace("postgresql+psycopg://", "postgresql+asyncpg://"),
+    reader_url,
+    connect_args={"ssl": ssl.create_default_context()} if secure else {},
     pool_pre_ping=True,
     pool_size=4,
     max_overflow=2,

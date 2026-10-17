@@ -14,6 +14,7 @@ from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel, Field
 from .settings import settings
 from .schemas import Dashboard
+from .cache import published_workspace
 from .database import read_session, fetch
 from .analytics import workspace, ae_data, bed_data, diagnostic_data, operations
 
@@ -164,7 +165,7 @@ async def screen_data(
     icb: str | None = Query(None, pattern="^[A-Z0-9]{3,8}$"),
 ):
     async with read_session() as conn:
-        result = await workspace(
+        result = await published_workspace(
             conn,
             screen,
             params(
