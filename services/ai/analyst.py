@@ -248,6 +248,8 @@ def numeric_support(answer, evidence):
     allowed = set()
 
     def visit(v):
+        if isinstance(v, bool):
+            return
         if isinstance(v, (int, float)):
             allowed.update([str(v), f"{v:.2f}", f"{v:.3f}", f"{v:.0f}"])
         elif isinstance(v, str):

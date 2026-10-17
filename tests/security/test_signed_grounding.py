@@ -50,3 +50,8 @@ def test_iso_date_separators_are_not_negative_quantities():
         "Reporting period 2026-09-01; change -0.68.",
         {"period": "2026-09-01", "change": -0.6782},
     )
+
+
+def test_availability_flags_are_not_measurements():
+    assert numeric_support("The forecast is unavailable.", {"available": False})
+    assert not numeric_support("There were 1 attendances.", {"available": True})
