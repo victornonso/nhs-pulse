@@ -460,6 +460,7 @@ async def export(
     diagnostic_grain: Literal["provider", "commissioner"] = "provider",
     horizon: int = Query(3, ge=1, le=12),
     q: str = Query("", max_length=100),
+    icb: str | None = Query(None, pattern="^[A-Z0-9]{3,8}$"),
 ):
     if screen not in SCREENS:
         raise HTTPException(404, "Unknown screen")
@@ -476,6 +477,7 @@ async def export(
                 bed_type,
                 diagnostic_grain,
                 horizon,
+                icb,
             ),
         )
     rows = (

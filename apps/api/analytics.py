@@ -121,6 +121,11 @@ async def ae_data(conn, p):
         params,
     )
 
+    if p.get("type", "all") != "all":
+        # Official DTA bands are provider totals, without a department breakdown.
+        for row in [summary, *trend, *providers]:
+            row["wait_4_12"] = row["wait_12_plus"] = None
+
     return {
         "period": period,
         "summary": summary,
@@ -361,7 +366,9 @@ async def workspace(conn, screen, p):
                 "patients",
                 ae["period"],
                 ae["provenance"],
-                "Decision-to-admit measure",
+                "Decision-to-admit measure"
+                if p.get("type", "all") == "all"
+                else "Published for all departments only",
                 "/emergency",
             ),
         ]
@@ -420,7 +427,7 @@ async def workspace(conn, screen, p):
                     "activity",
                     "horizontal",
                     "tests",
-                    f"Fifteen tests · {dx['period']} · provider grain",
+                    f"Fifteen tests · {dx['period'].strftime('%b %Y') if dx['period'] else 'Unavailable'} · provider grain",
                 )
             )
 
@@ -436,7 +443,9 @@ async def workspace(conn, screen, p):
                     "patients",
                     "bar",
                     "patients",
-                    "Disjoint waiting bands; not time since arrival",
+                    "Disjoint waiting bands; not time since arrival"
+                    if p.get("type", "all") == "all"
+                    else "Department-specific DTA bands are not published",
                 )
             )
 

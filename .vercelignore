@@ -1,0 +1,12 @@
+/*
+!/apps
+/apps/*
+!/apps/web
+!/apps/web/**
+/apps/web/node_modules/**
+/apps/web/.next/**
+/apps/web/.vercel/**
+/apps/web/.env*
+/apps/web/test-results/**
+/apps/web/playwright-report/**
+/apps/web/*.tsbuildinfo
