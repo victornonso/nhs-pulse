@@ -134,11 +134,26 @@ def links(html, page, source):
 
 
 def fetch_page(client, page, source, headers=None):
-    response = client.get(page, headers=headers or {})
+    # NHS England publishes the same page content through its public CMS API.
+    # Prefer that structured contract to delivery-specific HTML wrappers.
+    slug = urlparse(page).path.rstrip("/").rsplit("/", 1)[-1]
+    response = client.get(
+        "https://www.england.nhs.uk/statistics/wp-json/wp/v2/pages",
+        params={"slug": slug, "_fields": "id,link,content.rendered,modified_gmt"},
+        headers=headers or {},
+    )
     if response.status_code == 304:
         return response, [], "No new page content"
     response.raise_for_status()
     if len(response.content) > 5_000_000:
         raise ValueError("Publication page exceeds size limit")
-    assets, description = links(response.text, page, source)
+    if "application/json" not in response.headers.get("content-type", ""):
+        raise ValueError("Official publication API did not return JSON")
+    matches = [
+        p for p in response.json() if p.get("link", "").rstrip("/") == page.rstrip("/")
+    ]
+    if len(matches) != 1:
+        raise ValueError("Official publication API returned no unique canonical page")
+    html = '<div id="main-content">' + matches[0]["content"]["rendered"] + "</div>"
+    assets, description = links(html, page, source)
     return response, assets, description
