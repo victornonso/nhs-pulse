@@ -75,3 +75,38 @@ def test_grounding_diagnostics_identify_unsupported_values():
     diagnostics = {}
     assert not numeric_support("Change +0.68.", {"change": -0.6782}, diagnostics)
     assert diagnostics["unsupported_numbers"] == ["+0.68"]
+
+
+def test_short_citations_are_checked_separately_from_numbers():
+    assert numeric_support("20 attendances [E1].", [{"citation": "E1", "value": 20}])
+    assert not numeric_support(
+        "20 attendances [E9].", [{"citation": "E1", "value": 20}]
+    )
+
+
+def test_provider_context_excludes_database_ids_but_keeps_provenance():
+    from services.ai.analyst import provider_evidence
+
+    identifier = "992bb7d9-c476-4ea1-94f8-4149a83b50ef"
+    item = {
+        "id": identifier,
+        "citation": "E1",
+        "tool": "query_aggregate",
+        "result": {
+            "value": 20,
+            "provenance": [
+                {
+                    "release_id": identifier,
+                    "official_url": "https://www.england.nhs.uk/statistics/source.csv",
+                    "version": 1,
+                }
+            ],
+        },
+    }
+    context = provider_evidence(item)
+    assert context["citation"] == "E1"
+    assert "release_id" not in context["result"]["provenance"][0]
+    assert context["result"]["provenance"][0]["official_url"].startswith(
+        "https://www.england.nhs.uk/"
+    )
+    assert item["result"]["provenance"][0]["release_id"] == identifier

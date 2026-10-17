@@ -249,6 +249,33 @@ def releases(result):
     return list(found.values())
 
 
+def provider_evidence(item):
+    """Keep database identifiers in the inspector, not model-generated prose."""
+
+    def public(value):
+        if isinstance(value, dict):
+            return {
+                key: public(v)
+                for key, v in value.items()
+                if not (
+                    isinstance(v, str)
+                    and re.fullmatch(
+                        r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}", v, re.I
+                    )
+                )
+                and key != "release_ids"
+            }
+        if isinstance(value, list):
+            return [public(v) for v in value]
+        return value
+
+    return {
+        "citation": item["citation"],
+        "tool": item["tool"],
+        "result": public(item["result"]),
+    }
+
+
 def numeric_support(answer, evidence, diagnostics=None):
     """Check signed quantities separately from dates, URLs and evidence IDs."""
     from decimal import Decimal
@@ -310,13 +337,19 @@ def numeric_support(answer, evidence, diagnostics=None):
         v.lower() for v in uuid_pattern.findall(json.dumps(jsonable_encoder(evidence)))
     }
     cited_ids = {v.lower() for v in uuid_pattern.findall(url_pattern.sub("", answer))}
+    known_labels = (
+        {item.get("citation") for item in evidence if isinstance(item, dict)}
+        if isinstance(evidence, list)
+        else set()
+    )
+    cited_labels = set(re.findall(r"\[(E\d+)\]", answer))
     unsupported = [n for n in tokens(answer) if canonical(n) not in allowed]
     if diagnostics is not None:
         diagnostics.update(
             unsupported_numbers=unsupported,
             unknown_evidence_ids=sorted(cited_ids - known_ids),
         )
-    return cited_ids <= known_ids and not unsupported
+    return cited_ids <= known_ids and cited_labels <= known_labels and not unsupported
 
 
 async def investigate(session, question):
@@ -376,6 +409,9 @@ async def investigate(session, question):
     ]
     evidence = []
     answer = ""
+    messages[0]["content"] += (
+        ' Use the supplied short citation labels, such as [E1], to cite evidence. Never print or abbreviate database UUIDs. For monthly A&E outcomes call compare_periods once with metrics=["attendances","four_hour_pct"], leaving period and previous unset for the latest comparison. Use its backend-calculated changes and retain their signs; do not perform new arithmetic.'
+    )
     calls = 0
     tool_cache = {}
     try:
@@ -413,7 +449,9 @@ async def investigate(session, question):
                             {
                                 "role": "tool",
                                 "tool_call_id": call["id"],
-                                "content": json.dumps(tool_cache[cache_key]),
+                                "content": json.dumps(
+                                    provider_evidence(tool_cache[cache_key])
+                                ),
                             }
                         )
                         continue
@@ -425,6 +463,7 @@ async def investigate(session, question):
                     refs = jsonable_encoder(releases(result))
                     item = {
                         "id": identifier,
+                        "citation": f"E{len(evidence) + 1}",
                         "tool": name,
                         "result": result,
                         "releases": refs,
@@ -459,7 +498,7 @@ async def investigate(session, question):
                         {
                             "role": "tool",
                             "tool_call_id": call["id"],
-                            "content": json.dumps(item),
+                            "content": json.dumps(provider_evidence(item)),
                         }
                     )
         diagnostics = {}

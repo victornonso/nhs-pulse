@@ -1382,6 +1382,7 @@ function Analyst({ data }: { data: Dashboard }) {
       answer: string;
       evidence: {
         id: string;
+        citation?: string;
         tool: string;
         result: unknown;
         releases?: Provenance[];
@@ -1395,6 +1396,7 @@ function Analyst({ data }: { data: Dashboard }) {
         answer: string;
         evidence: {
           id: string;
+          citation?: string;
           tool: string;
           result: unknown;
           releases?: Provenance[];
@@ -1414,6 +1416,7 @@ function Analyst({ data }: { data: Dashboard }) {
     answer: string;
     evidence: {
       id: string;
+      citation?: string;
       tool: string;
       result: unknown;
       releases?: Provenance[];
@@ -1543,7 +1546,7 @@ function Analyst({ data }: { data: Dashboard }) {
         <p>Inspect the definition before interpreting the number.</p>
         {answer?.evidence.map((e) => (
           <details className="evidence-item" key={e.id}>
-            <summary>{e.tool.replaceAll("_", " ")}</summary>
+            <summary>{e.citation ? `[${e.citation}] ` : ''}{e.tool.replaceAll("_", " ")}</summary>
             <code>{e.id}</code>
             <pre>
               {JSON.stringify(
