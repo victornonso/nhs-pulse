@@ -8,6 +8,8 @@ The application reader has SELECT access to analytical evidence and INSERT/UPDAT
 
 Page and asset ETag/Last-Modified headers are used where supported. The file SHA-256 is authoritative for unchanged content. A source-scoped PostgreSQL advisory lock prevents duplicate ingestion. The operations view distinguishes a successful discovery from a new publication. A 72-hour publication grace period avoids announcing a late release immediately at the expected minute.
 
+The hosted entry point is `python -m tools.scheduled_collection`. GitHub Actions invokes it hourly; PostgreSQL records successful maintenance timestamps so ephemeral runners do not repeat weekly or monthly work on every run. A runner lease prevents overlap. Historical audits revisit published reporting periods rather than expanding the backfill implicitly. Discovery uses the official NHS public CMS API and checks canonical URLs before parsing file links. Failures remain visible and fail the workflow instead of advancing successful-maintenance timestamps.
+
 ## Failure and recovery
 
 Inspect `/operations`, `/api/v1/operations/runs` and worker logs. A quarantined release has failed a critical contract check; its validation records explain why. The previously published version remains available. Do not edit raw files or force an invalid version into published marts. After inspecting a changed source contract, revalidate retained original evidence through the ingestion function's explicit `revalidate=True` path. The audit retains previous failed attempts.

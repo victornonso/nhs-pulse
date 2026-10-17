@@ -91,13 +91,30 @@ async def aggregate(c, a, period=None, provider=None):
                 if s["admissions"] is not None and s["other_admissions"] is not None
                 else None
             )
+    provenance = [
+        {
+            **r,
+            "official_publication": r["official_publication"].date()
+            if hasattr(r.get("official_publication"), "hour")
+            else r.get("official_publication"),
+        }
+        for r in d["provenance"]
+    ]
     return {
         "metric": a.metric,
         "value": number,
         "unit": unit,
         "reporting_period": period,
         "provider": provider or a.provider,
-        "provenance": d["provenance"],
+        "scope": {
+            "geography": provider or a.provider or "England",
+            "attendance_type": "all",
+            "booked_appointments": "included",
+            "beds": "overnight quarterly return",
+            "diagnostics": "NHS-commissioned provider projection",
+        },
+        "provenance": provenance,
+        "publication_precision": "date; do not infer an official publication time",
     }
 
 
@@ -117,7 +134,23 @@ async def tool(name, arguments):
         if name == "compare_periods":
             if not a.period or not a.previous:
                 raise ValueError("Two explicit reporting months are required")
-            return [await aggregate(c, a, a.period), await aggregate(c, a, a.previous)]
+            current, previous = (
+                await aggregate(c, a, a.period),
+                await aggregate(c, a, a.previous),
+            )
+            change = (
+                current["value"] - previous["value"]
+                if current["value"] is not None and previous["value"] is not None
+                else None
+            )
+            return {
+                "observations": [current, previous],
+                "absolute_change": change,
+                "percentage_change": 100 * change / previous["value"]
+                if change is not None and previous["value"]
+                else None,
+                "comparison": "Current minus previous; percentage change uses the previous value as denominator.",
+            }
         if name == "compare_providers":
             if not 1 <= len(a.providers) <= 3 or any(
                 not re.fullmatch("[A-Z0-9]{3,8}", x) for x in a.providers
@@ -150,10 +183,14 @@ async def tool(name, arguments):
                 }
             )
         if name == "get_publication_status":
-            return await fetch(
+            rows = await fetch(
                 c,
                 "SELECT id,name,cadence,status,collection_status,last_checked,last_ingested,latest_period,next_announced FROM mart.collection_status ORDER BY id",
             )
+            return {
+                "sources": rows,
+                "interpretation": "Collection status describes discovery attempts, not the validity or completeness of the last validated published release. A failed check preserves published evidence. Publication dates in aggregate provenance have date-only precision; announced calendar timestamps are expectations, not observed publication times.",
+            }
         if name == "get_source_methodology":
             return {
                 "definitions": await fetch(

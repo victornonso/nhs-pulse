@@ -4,6 +4,8 @@
 
 NHS Pulse connects NHS England A&E activity, diagnostic waiting times and quarterly bed capacity in an analytical workspace. Each measure carries its reporting period, official source, publication version and ingestion lineage. The application is independent of the NHS and uses public aggregate statistics only.
 
+[Open NHS Pulse](https://nhs-pulse-victor-okeke.vercel.app/) · [API reference](https://nhs-pulse-api.onrender.com/docs) · [Victor Okeke](https://victorokeke.co.uk)
+
 ## Product
 
 | Workspace | Purpose |
@@ -91,7 +93,11 @@ Integration acceptance is restricted to the separate `nhs_pulse_test` database. 
 
 ## Deployment
 
-The portable deployment consists of PostgreSQL/PostGIS, a FastAPI service and a Next.js frontend. `infra/render.yaml` describes a free web service; collection can run through GitHub Actions instead of a paid continuous worker. The hourly workflow performs source-specific due checks and does not ingest unchanged files. It remains inactive until its database secrets are connected. Vercel needs `apps/web` as its root directory and the backend origin as `API_INTERNAL_URL` at build time.
+The deployed system uses Neon PostgreSQL 18/PostGIS, a free Render FastAPI service and a Vercel Next.js frontend. `infra/render.yaml` records the web service configuration. GitHub Actions runs the stateless collection coordinator at minute 17 each hour, using encrypted least-privilege database credentials. Source-specific due checks, weekly revision audits, daily organisation enrichment and monthly boundary refresh continue independently of web traffic. New published A&E versions trigger forecast retraining. Vercel uses `apps/web` as its root directory and the backend origin as `API_INTERNAL_URL` at build time.
+
+The publication discovery contract uses NHS England's public WordPress API, validates the canonical page URL and accepts only allowlisted official file links. Calendar expectations, successful checks and actual new releases remain separate operational events. Free Render instances can introduce a cold start; the application preserves the published evidence while the API wakes.
+
+The verification workflow starts the complete Docker Compose stack on an isolated runner, publishes captured official releases, checks the container API and verifies the frontend-to-backend path. A separate job executes database acceptance tests and browser checks for all eight routes at 1440, 768 and 390 pixels. Responsive screenshots are retained as workflow artifacts.
 
 Free services may sleep and scheduled workflows can be delayed. Data Operations reports the actual check/ingestion record rather than masking these conditions. See [source contracts](docs/source-contracts.md), [operations](docs/operations.md) and [verification status](docs/implementation-status.md).
 
